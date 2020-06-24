@@ -1,9 +1,10 @@
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import configparser
 import argparse
 
 import mysql.connector as mc
+from dateutil.tz import gettz
 
 # get data as command line arguments
 arg_parser = argparse.ArgumentParser()
@@ -27,15 +28,17 @@ password = parser['DEFAULT']['Password']
 # print(host, db, user, password)
 
 # todays date and time in United Kingdom Timezone
-todays_date = datetime.strftime(datetime.now(timezone.utc), r"%Y-%m-%d")
-nows_time = datetime.strftime(datetime.now(timezone.utc), r"%H:%M:%S%P")
+london_tz = gettz('Europe/London')
+londom_timedelta = london_tz.utcoffset(datetime.now(timezone.utc))
+todays_date = datetime.strftime(datetime.now(timezone.utc) + londom_timedelta, r"%Y-%m-%d")
+nows_time = datetime.strftime(datetime.now(timezone.utc) + londom_timedelta, r"%H:%M:%S%P")
 # print(todays_date)
 # print(nows_time)
 
 # create database connection
 try:
     conn = mc.connect(user=user, password=password, host=host, database=db)
-    cursor = conn.cursor()
+    cursor = conn.cursor(prepared=True)
 except mc.Error as err:
   if err.errno == mc.errorcode.ER_ACCESS_DENIED_ERROR:
     print("Something is wrong with your user name or password")
@@ -231,7 +234,7 @@ else:
             else:
                 print('Invalid Device')
         except mc.Error as err:
-            print(err)
+            print(f'devices table error -> {err}')
     else:
         print("No arguments provided")
     cursor.close()
